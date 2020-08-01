@@ -1,5 +1,5 @@
 target extended-remote /dev/ttyACM0
-file usart_demo.elf
+file examples/usart_demo/usart_demo.elf
 monitor swdp_scan
 attach 1
 set mem inaccessible-by-default off
