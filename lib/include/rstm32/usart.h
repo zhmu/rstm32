@@ -78,4 +78,12 @@ namespace usart
 
     void Configure(
         int baudRate, const DataBits db, const Parity p, const StopBits sb, const FlowControl fc);
+
+    enum class Mode {
+        Disable = 0,
+        Enable_TX = cr1::TE | cr1::UE,
+        Enable_RX = cr1::RE | cr1::UE,
+        Enable_RX_TX = cr1::RE | cr1::TE | cr1::UE
+    };
+    void SetMode(const Mode mode);
 } // namespace usart

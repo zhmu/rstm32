@@ -32,8 +32,7 @@ namespace
         usart::Configure(
             115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
             usart::FlowControl::None);
-        usart::Register(usart::USART_CR1) |= usart::cr1::TE; // enable TX
-        usart::Register(usart::USART_CR1) |= usart::cr1::UE; // enable UART
+        usart::SetMode(usart::Mode::Enable_TX);
     }
 
     void gpio_init()

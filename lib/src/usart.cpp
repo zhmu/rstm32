@@ -45,4 +45,12 @@ namespace usart
         Register(USART_CR2) = cr2;
         Register(USART_CR3) = cr3;
     }
+
+    void SetMode(const Mode mode)
+    {
+        auto cr = Register(USART_CR1);
+        cr &= ~(cr1::RE | cr1::TE | cr1::UE);
+        cr |= static_cast<uint32_t>(mode);
+        Register(USART_CR1) = cr;
+    }
 } // namespace usart
