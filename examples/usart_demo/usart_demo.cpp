@@ -19,10 +19,10 @@ namespace
     {
         rcc::Setup_8MHz_External_Crystal_Yielding_72MHz_PLL();
 
-        rcc::Register(rcc::RCC_APB2ENR) |= rcc::apb2enr::IOPCEN; // GPIOC
-        rcc::Register(rcc::RCC_APB2ENR) |= rcc::apb2enr::IOPAEN; // GPIOA
-        rcc::Register(rcc::RCC_APB2ENR) |= rcc::apb2enr::AFIOEN;
-        rcc::Register(rcc::RCC_APB2ENR) |= rcc::apb2enr::USART1EN;
+        rcc::EnableClock(rcc::PeripheralClock::IOPC);
+        rcc::EnableClock(rcc::PeripheralClock::IOPA);
+        rcc::EnableClock(rcc::PeripheralClock::AFIO);
+        rcc::EnableClock(rcc::PeripheralClock::USART1);
     }
 
     void usart_init()

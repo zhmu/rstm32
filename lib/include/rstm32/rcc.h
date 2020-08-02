@@ -77,8 +77,89 @@ namespace rcc
     constexpr inline uint32_t RCC_BDCR = 0x20;
     constexpr inline uint32_t RCC_CSR = 0x24;
 
+    namespace detail
+    {
+        constexpr uint32_t CombineRegisterAndBit(uint32_t reg, int bit) { return (reg << 5) | bit; }
+
+        constexpr auto SplitRegisterAndBit(uint32_t v)
+        {
+            struct S {
+                uint32_t bit;
+                int reg;
+            };
+            return S{v >> 5, static_cast<int>(v & 31)};
+        }
+    } // namespace detail
+
+    enum class PeripheralClock {
+        DMA1 = detail::CombineRegisterAndBit(RCC_AHBENR, 0),
+        DMA2 = detail::CombineRegisterAndBit(RCC_AHBENR, 1),
+        SRAM = detail::CombineRegisterAndBit(RCC_AHBENR, 2),
+        FLITF = detail::CombineRegisterAndBit(RCC_AHBENR, 4),
+        CRC = detail::CombineRegisterAndBit(RCC_AHBENR, 6),
+        FSMC = detail::CombineRegisterAndBit(RCC_AHBENR, 8),
+        SDIO = detail::CombineRegisterAndBit(RCC_AHBENR, 10),
+
+        AFIO = detail::CombineRegisterAndBit(RCC_APB2ENR, 0),
+        IOPA = detail::CombineRegisterAndBit(RCC_APB2ENR, 2),
+        IOPB = detail::CombineRegisterAndBit(RCC_APB2ENR, 3),
+        IOPC = detail::CombineRegisterAndBit(RCC_APB2ENR, 4),
+        IOPD = detail::CombineRegisterAndBit(RCC_APB2ENR, 5),
+        IOPE = detail::CombineRegisterAndBit(RCC_APB2ENR, 6),
+        IOPF = detail::CombineRegisterAndBit(RCC_APB2ENR, 7),
+        IOPG = detail::CombineRegisterAndBit(RCC_APB2ENR, 8),
+        ADC1 = detail::CombineRegisterAndBit(RCC_APB2ENR, 9),
+        ADC2 = detail::CombineRegisterAndBit(RCC_APB2ENR, 10),
+        TIM1 = detail::CombineRegisterAndBit(RCC_APB2ENR, 11),
+        SPI1 = detail::CombineRegisterAndBit(RCC_APB2ENR, 12),
+        TIM8 = detail::CombineRegisterAndBit(RCC_APB2ENR, 13),
+        USART1 = detail::CombineRegisterAndBit(RCC_APB2ENR, 14),
+        ADC3 = detail::CombineRegisterAndBit(RCC_APB2ENR, 15),
+        TIM9 = detail::CombineRegisterAndBit(RCC_APB2ENR, 19),
+        TIM10 = detail::CombineRegisterAndBit(RCC_APB2ENR, 20),
+        TIM11 = detail::CombineRegisterAndBit(RCC_APB2ENR, 21),
+
+        TIM2 = detail::CombineRegisterAndBit(RCC_APB1ENR, 0),
+        TIM3 = detail::CombineRegisterAndBit(RCC_APB1ENR, 1),
+        TIM4 = detail::CombineRegisterAndBit(RCC_APB1ENR, 2),
+        TIM5 = detail::CombineRegisterAndBit(RCC_APB1ENR, 3),
+        TIM6 = detail::CombineRegisterAndBit(RCC_APB1ENR, 4),
+        TIM7 = detail::CombineRegisterAndBit(RCC_APB1ENR, 5),
+        TIM12 = detail::CombineRegisterAndBit(RCC_APB1ENR, 6),
+        TIM13 = detail::CombineRegisterAndBit(RCC_APB1ENR, 7),
+        TIM14 = detail::CombineRegisterAndBit(RCC_APB1ENR, 8),
+        WWD = detail::CombineRegisterAndBit(RCC_APB1ENR, 11),
+        SPI2 = detail::CombineRegisterAndBit(RCC_APB1ENR, 14),
+        SPI3 = detail::CombineRegisterAndBit(RCC_APB1ENR, 15),
+        USART2 = detail::CombineRegisterAndBit(RCC_APB1ENR, 17),
+        USART3 = detail::CombineRegisterAndBit(RCC_APB1ENR, 18),
+        USART4 = detail::CombineRegisterAndBit(RCC_APB1ENR, 19),
+        USART5 = detail::CombineRegisterAndBit(RCC_APB1ENR, 20),
+        I2C1 = detail::CombineRegisterAndBit(RCC_APB1ENR, 21),
+        I2C2 = detail::CombineRegisterAndBit(RCC_APB1ENR, 22),
+        USB = detail::CombineRegisterAndBit(RCC_APB1ENR, 23),
+        CAN = detail::CombineRegisterAndBit(RCC_APB1ENR, 25),
+        BKP = detail::CombineRegisterAndBit(RCC_APB1ENR, 27),
+        PWR = detail::CombineRegisterAndBit(RCC_APB1ENR, 28),
+        DAC = detail::CombineRegisterAndBit(RCC_APB1ENR, 29),
+    };
+
     // Given a 8MHz external crystal oscillator, yields SYSCLK at 72MHz
     void Setup_8MHz_External_Crystal_Yielding_72MHz_PLL();
+
+    inline void EnableClock(const PeripheralClock clock)
+    {
+        const auto [clockRegister, clockBit] =
+            detail::SplitRegisterAndBit(static_cast<uint32_t>(clock));
+        Register(clockRegister) |= (1 << clockBit);
+    }
+
+    inline void DisableClock(const PeripheralClock clock)
+    {
+        const auto [clockRegister, clockBit] =
+            detail::SplitRegisterAndBit(static_cast<uint32_t>(clock));
+        Register(clockRegister) &= ~(1 << clockBit);
+    }
 
     uint32_t GetAPB1Frequency();
     uint32_t GetAPB2Frequency();
