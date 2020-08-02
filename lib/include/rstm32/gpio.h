@@ -49,21 +49,6 @@ namespace gpio
     constexpr inline uint32_t GPIOx_BSRR = 0x10;
     constexpr inline uint32_t GPIOx_BRR = 0x14;
 
-    inline void TogglePin(int gpioBase, int pin)
-    {
-        gpio::Register(gpioBase + GPIOx_ODR) ^= (1 << pin);
-    }
-
-    inline void ClearPin(int gpioBase, int pin)
-    {
-        gpio::Register(gpioBase + GPIOx_ODR) &= ~(1 << pin);
-    }
-
-    inline void SetPin(int gpioBase, int pin)
-    {
-        gpio::Register(gpioBase + GPIOx_ODR) |= (1 << pin);
-    }
-
     enum class Config {
         Input_Analog = gpio_cr::MODE_INPUT | gpio_cr::CNF_IN_ANALOG,
         Input_Floating = gpio_cr::MODE_INPUT | gpio_cr::CNF_IN_FLOATING,
@@ -88,5 +73,49 @@ namespace gpio
         Output_50MHz_Alt_Open_Drain = gpio_cr::MODE_OUTPUT_50MHZ | gpio_cr::CNF_OUT_ALT_OPEN_DRAIN,
     };
 
-    void SetupPin(int gpioBase, int pin, const Config config);
+    enum class Bank {
+        A = GPIOA,
+        B = GPIOB,
+        C = GPIOC,
+        D = GPIOD,
+        E = GPIOE,
+        F = GPIOF,
+        G = GPIOG,
+    };
+
+    struct Pin {
+        constexpr Pin(const Bank bank_, const int pin_) : bank(bank_), pin(pin_) {}
+        const Bank bank;
+        const int pin;
+    };
+
+    // Pin constructor is constexpr, so by inlining we can often get rid of the calculations. Is
+    // this worth it?
+    inline void SetupPin(const Pin& p, const Config config)
+    {
+        const auto pinBase = static_cast<uint32_t>(p.bank);
+        const int pinRegister = (p.pin >= 8) ? gpio::GPIOx_CRH : gpio::GPIOx_CRL;
+        const int pinShift = (p.pin & 7) * 4;
+
+        auto cr = gpio::Register(pinBase + pinRegister);
+        cr &= ~((gpio::gpio_cr::MODE_MASK | gpio::gpio_cr::CNF_MASK) << pinShift);
+        cr |= static_cast<uint32_t>(config) << pinShift;
+        gpio::Register(pinBase + pinRegister) = cr;
+    }
+
+    inline void TogglePin(const Pin& p)
+    {
+        gpio::Register(static_cast<uint32_t>(p.bank) + GPIOx_ODR) ^= (1 << p.pin);
+    }
+
+    inline void ClearPin(const Pin& p)
+    {
+        gpio::Register(static_cast<uint32_t>(p.bank) + GPIOx_ODR) &= ~(1 << p.pin);
+    }
+
+    inline void SetPin(const Pin& p)
+    {
+        gpio::Register(static_cast<uint32_t>(p.bank) + GPIOx_ODR) |= (1 << p.pin);
+    }
+
 } // namespace gpio

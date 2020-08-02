@@ -10,8 +10,8 @@
 #include "rstm32/gpio.h"
 #include "rstm32/usart.h"
 
-constexpr int USART1_TX = 9; // PA9
-constexpr int GPIO_LED = 13; // PC13
+constexpr gpio::Pin usart1TX(gpio::Bank::A, 9);
+constexpr gpio::Pin pinLed(gpio::Bank::C, 13);
 
 namespace
 {
@@ -27,8 +27,7 @@ namespace
 
     void usart_init()
     {
-        gpio::SetupPin(
-            gpio::GPIOA, USART1_TX, gpio::Config::Output_50MHz_Alt_Push_Pull);
+        gpio::SetupPin(usart1TX, gpio::Config::Output_50MHz_Alt_Push_Pull);
 
         usart::Configure(
             115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
@@ -39,9 +38,8 @@ namespace
 
     void gpio_init()
     {
-        gpio::ClearPin(gpio::GPIOC, GPIO_LED);
-        gpio::SetupPin(
-            gpio::GPIOC, GPIO_LED, gpio::Config::Output_50MHz_General_Push_Pull);
+        gpio::ClearPin(pinLed);
+        gpio::SetupPin(pinLed, gpio::Config::Output_50MHz_General_Push_Pull);
     }
 } // namespace
 
@@ -58,7 +56,7 @@ int main()
     usart_init();
 
     for (unsigned int counter = 0;; ++counter) {
-        gpio::TogglePin(gpio::GPIOC, GPIO_LED);
+        gpio::TogglePin(pinLed);
         format::Print("Tadah! ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
 
         for (int i = 0; i < 1000000; ++i)
