@@ -10,9 +10,17 @@
 
 namespace usart
 {
-    inline volatile uint32_t& Register(uint32_t offset)
+    enum class Port : uint32_t {
+        USART1 = 0x4001'3800,
+        USART2 = 0x4000'4400,
+        USART3 = 0x4000'4800,
+        USART4 = 0x4000'4C00,
+        USART5 = 0x4000'5000,
+    };
+
+    inline volatile uint32_t& Register(const Port& port, uint32_t offset)
     {
-        return *reinterpret_cast<volatile uint32_t*>(0x40013800 + offset);
+        return *reinterpret_cast<volatile uint32_t*>(static_cast<uint32_t>(port) + offset);
     }
     constexpr inline uint32_t USART_SR = 0x00;
     namespace sr
@@ -56,9 +64,10 @@ namespace usart
 
     inline void Write(int ch)
     {
-        while ((usart::Register(usart::USART_SR) & usart::sr::TXE) == 0)
+        const auto port = Port::USART1;
+        while ((usart::Register(port, usart::USART_SR) & usart::sr::TXE) == 0)
             ;
-        usart::Register(usart::USART_DR) = ch;
+        usart::Register(port, usart::USART_DR) = ch;
     }
 
     enum class DataBits { DB_8 = 0, DB_9 = cr1::M };
@@ -77,7 +86,8 @@ namespace usart
     };
 
     void Configure(
-        int baudRate, const DataBits db, const Parity p, const StopBits sb, const FlowControl fc);
+        const Port& port, int baudRate, const DataBits db, const Parity p, const StopBits sb,
+        const FlowControl fc);
 
     enum class Mode {
         Disable = 0,
@@ -85,5 +95,5 @@ namespace usart
         Enable_RX = cr1::RE | cr1::UE,
         Enable_RX_TX = cr1::RE | cr1::TE | cr1::UE
     };
-    void SetMode(const Mode mode);
+    void SetMode(const Port&, const Mode);
 } // namespace usart

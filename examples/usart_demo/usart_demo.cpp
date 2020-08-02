@@ -10,6 +10,7 @@
 #include "rstm32/gpio.h"
 #include "rstm32/usart.h"
 
+constexpr usart::Port usart1(usart::Port::USART1);
 constexpr gpio::Pin usart1TX(gpio::Bank::A, 9);
 constexpr gpio::Pin pinLed(gpio::Bank::C, 13);
 
@@ -30,9 +31,9 @@ namespace
         gpio::SetupPin(usart1TX, gpio::Config::Output_50MHz_Alt_Push_Pull);
 
         usart::Configure(
-            115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
+            usart1, 115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
             usart::FlowControl::None);
-        usart::SetMode(usart::Mode::Enable_TX);
+        usart::SetMode(usart1, usart::Mode::Enable_TX);
     }
 
     void gpio_init()
