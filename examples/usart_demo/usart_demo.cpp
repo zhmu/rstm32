@@ -57,7 +57,7 @@ int main()
 
     for (unsigned int counter = 0;; ++counter) {
         gpio::TogglePin(pinLed);
-        format::Print("Tadah! ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
+        format::Print(usart1, "Hello world ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
 
         for (int i = 0; i < 1000000; ++i)
             __asm __volatile("nop");

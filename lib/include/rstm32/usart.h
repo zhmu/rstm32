@@ -62,9 +62,8 @@ namespace usart
 
     constexpr inline uint32_t USART_GTPR = 0x18;
 
-    inline void Write(int ch)
+    inline void Write(const Port& port, int ch)
     {
-        const auto port = Port::USART1;
         while ((usart::Register(port, usart::USART_SR) & usart::sr::TXE) == 0)
             ;
         usart::Register(port, usart::USART_DR) = ch;
