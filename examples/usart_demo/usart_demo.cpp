@@ -28,8 +28,7 @@ namespace
     void usart_init()
     {
         gpio::SetupPin(
-            gpio::GPIOA_, USART1_TX, gpio::gpio_cr::MODE_OUTPUT_50MHZ,
-            gpio::gpio_cr::CNF_OUT_ALT_PUSH_PULL);
+            gpio::GPIOA, USART1_TX, gpio::Config::Output_50MHz_Alt_Push_Pull);
 
         usart::Configure(
             115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
@@ -40,10 +39,9 @@ namespace
 
     void gpio_init()
     {
-        gpio::ClearPin(gpio::GPIOC_, GPIO_LED);
+        gpio::ClearPin(gpio::GPIOC, GPIO_LED);
         gpio::SetupPin(
-            gpio::GPIOC_, GPIO_LED, gpio::gpio_cr::MODE_OUTPUT_50MHZ,
-            gpio::gpio_cr::CNF_OUT_GENERAL_PUSH_PULL);
+            gpio::GPIOC, GPIO_LED, gpio::Config::Output_50MHz_General_Push_Pull);
     }
 } // namespace
 
@@ -60,7 +58,7 @@ int main()
     usart_init();
 
     for (unsigned int counter = 0;; ++counter) {
-        gpio::TogglePin(gpio::GPIOC_, GPIO_LED);
+        gpio::TogglePin(gpio::GPIOC, GPIO_LED);
         format::Print("Tadah! ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
 
         for (int i = 0; i < 1000000; ++i)
