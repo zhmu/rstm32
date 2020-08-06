@@ -11,6 +11,15 @@
 
 namespace rcc
 {
+    struct Clock8MHzOscillator72MHzPLL {
+        constexpr static inline uint32_t cpu_frequency{72'000'000};
+        constexpr static inline uint32_t ahb_frequency{72'000'000};
+        constexpr static inline uint32_t osc_frequency{8'000'000};
+        constexpr static inline uint32_t apb1_frequency{36'000'000};
+        constexpr static inline uint32_t apb2_frequency{72'000'000};
+        constexpr static inline uint32_t adc_frequency{9'000'000};
+    };
+
     inline volatile uint32_t& Register(uint32_t offset)
     {
         return *reinterpret_cast<volatile uint32_t*>(0x4002'1000 + offset);
@@ -144,8 +153,162 @@ namespace rcc
         DAC = detail::CombineRegisterAndBit(RCC_APB1ENR, 29),
     };
 
-    // Given a 8MHz external crystal oscillator, yields SYSCLK at 72MHz
-    void Setup_8MHz_External_Crystal_Yielding_72MHz_PLL();
+    namespace detail
+    {
+        template<int base, int needed>
+        constexpr int DetermineMultiplier()
+        {
+            static_assert(needed % base == 0, "needed not a multiple of base");
+            return needed / base;
+        }
+
+        template<int value, int factor>
+        constexpr int DetermineDivisor()
+        {
+            static_assert(value % factor == 0, "value not a multiple of factor");
+            int divisor = 0;
+            for (auto n = value; n >= factor; n -= factor, ++divisor)
+                ;
+            return divisor;
+        }
+
+        template<int cpuFreq, int apbFreq>
+        constexpr auto GetAPBPrescalerRegisterValue()
+        {
+            constexpr auto divisor = DetermineDivisor<cpuFreq, apbFreq>();
+            switch (divisor) {
+                case 1:
+                    return 0b000;
+                case 2:
+                    return 0b100;
+                case 4:
+                    return 0b101;
+                case 8:
+                    return 0b110;
+                case 16:
+                    return 0b111;
+            }
+        }
+
+        template<int cpuFreq, int adcFreq>
+        constexpr auto GetADCPrescalerRegisterValue()
+        {
+            constexpr auto divisor = DetermineDivisor<cpuFreq, adcFreq>();
+            switch (divisor) {
+                case 2:
+                    return 0b00;
+                case 4:
+                    return 0b01;
+                case 6:
+                    return 0b10;
+                case 8:
+                    return 0b11;
+            }
+        }
+
+        template<int cpuFreq, int ahbFreq>
+        constexpr auto GetAHBPrescalerRegisterValue()
+        {
+            constexpr auto divisor = DetermineDivisor<cpuFreq, ahbFreq>();
+            switch (divisor) {
+                case 1:
+                    return 0b0000;
+                case 2:
+                    return 0b1000;
+                case 4:
+                    return 0b1001;
+                case 8:
+                    return 0b1010;
+                case 16:
+                    return 0b1011;
+                case 64:
+                    return 0b1100;
+                case 128:
+                    return 0b1101;
+                case 256:
+                    return 0b1110;
+                case 512:
+                    return 0b1111;
+            }
+        }
+
+        template<int cpuFreq>
+        constexpr auto GetFlashWaitStateValue()
+        {
+            if (cpuFreq >= 0 && cpuFreq <= 24'000'000)
+                return 0b000;
+            if (cpuFreq <= 48'000'000)
+                return 0b001;
+            if (cpuFreq <= 72'000'000)
+                return 0b010;
+        }
+
+        template<int base, int needed>
+        constexpr auto GetPLLMultiplierRegisterValue()
+        {
+            constexpr auto multiplier = DetermineMultiplier<base, needed>();
+            static_assert(multiplier >= 2 && multiplier <= 16, "unsupported value");
+            return static_cast<uint32_t>(multiplier - 2) << 18;
+        }
+
+        inline void SwitchToClock(int crSetBit, int crWaitBit, int swBit)
+        {
+            Register(RCC_CR) |= crSetBit;
+            while ((Register(RCC_CR) & crWaitBit) == 0)
+                ;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::SW_MASK) | swBit;
+        };
+    } // namespace detail
+
+    template<typename Clock>
+    void Initialize()
+    {
+        // Switch to internal high-speed (8MHz) clock
+        detail::SwitchToClock(cr::HSION, cr::HSIRDY, cfgr::SW_HSI);
+
+        // Switch to external crystal
+        detail::SwitchToClock(cr::HSEON, cr::HSERDY, cfgr::SW_HSE);
+
+        // Prescalers
+        {
+            constexpr auto ahbDivisor =
+                detail::GetAHBPrescalerRegisterValue<Clock::cpu_frequency, Clock::ahb_frequency>()
+                << 4;
+            constexpr auto ppre1Divisor =
+                detail::GetAPBPrescalerRegisterValue<Clock::cpu_frequency, Clock::apb1_frequency>()
+                << 8;
+            constexpr auto ppre2Divisor =
+                detail::GetAPBPrescalerRegisterValue<Clock::cpu_frequency, Clock::apb2_frequency>()
+                << 11;
+            constexpr auto adcDivisor =
+                detail::GetADCPrescalerRegisterValue<Clock::cpu_frequency, Clock::adc_frequency>()
+                << 14;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::HPRE_MASK) | ahbDivisor;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::ADCPRE_MASK) | adcDivisor;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::PPRE1_MASK) | ppre1Divisor;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::PPRE2_MASK) | ppre2Divisor;
+        }
+
+        // Flash wait states
+        {
+            constexpr auto flashLatency = detail::GetFlashWaitStateValue<Clock::cpu_frequency>();
+            flash::Register(flash::FLASH_ACR) =
+                (flash::Register(flash::FLASH_ACR) & ~flash::acr::LATENCY_MASK) | flashLatency;
+        }
+
+        // Setup PLL as HSE with appropriate multiplier
+        {
+            constexpr auto pllRegisterValue =
+                detail::GetPLLMultiplierRegisterValue<Clock::osc_frequency, Clock::cpu_frequency>();
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::PLLMUL_MASK) | pllRegisterValue;
+            Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::PLLSRC_MASK) | cfgr::PLLSRC_HSE;
+            Register(RCC_CFGR) =
+                (Register(RCC_CFGR) & ~cfgr::PLLXTPRE_MASK) | cfgr::PLLXTPRE_NO_DIV;
+        }
+
+        // Switch to PLL
+        detail::SwitchToClock(cr::PLLON, cr::PLLRDY, cfgr::SW_PLL);
+    }
 
     inline void EnableClock(const PeripheralClock clock)
     {
@@ -160,7 +323,4 @@ namespace rcc
             detail::SplitRegisterAndBit(static_cast<uint32_t>(clock));
         Register(clockRegister) &= ~(1 << clockBit);
     }
-
-    uint32_t GetAPB1Frequency();
-    uint32_t GetAPB2Frequency();
 } // namespace rcc

@@ -14,11 +14,13 @@ constexpr usart::Port usart1(usart::Port::USART1);
 constexpr gpio::Pin usart1TX(gpio::Bank::A, 9);
 constexpr gpio::Pin pinLed(gpio::Bank::C, 13);
 
+using Clock = rcc::Clock8MHzOscillator72MHzPLL;
+
 namespace
 {
     void clock_init()
     {
-        rcc::Setup_8MHz_External_Crystal_Yielding_72MHz_PLL();
+        rcc::Initialize<Clock>();
 
         rcc::EnableClock(rcc::PeripheralClock::IOPC);
         rcc::EnableClock(rcc::PeripheralClock::IOPA);
@@ -30,7 +32,7 @@ namespace
     {
         gpio::SetupPin(usart1TX, gpio::Config::Output_50MHz_Alt_Push_Pull);
 
-        usart::Configure(
+        usart::Configure<Clock>(
             usart1, 115200, usart::DataBits::DB_8, usart::Parity::None, usart::StopBits::SB_1,
             usart::FlowControl::None);
         usart::SetMode(usart1, usart::Mode::Enable_TX);

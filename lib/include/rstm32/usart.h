@@ -84,15 +84,57 @@ namespace usart
         RTS_CTS = cr3::RTSE | cr3::CTSE
     };
 
-    void Configure(
-        const Port& port, int baudRate, const DataBits db, const Parity p, const StopBits sb,
-        const FlowControl fc);
-
     enum class Mode {
         Disable = 0,
         Enable_TX = cr1::TE | cr1::UE,
         Enable_RX = cr1::RE | cr1::UE,
         Enable_RX_TX = cr1::RE | cr1::TE | cr1::UE
     };
-    void SetMode(const Port&, const Mode);
+
+    namespace detail
+    {
+        template<typename Clock>
+        void SetBaudRate(const Port& port, const int baud)
+        {
+            const int fPCLK2 = port == Port::USART1 ? Clock::apb2_frequency : Clock::apb1_frequency;
+            const int value_mantissa = (fPCLK2 / 16) / baud;
+            // Fraction is n/16-ths of the result; should we round up here?
+            const int value_modulo = (fPCLK2 / 16) % baud;
+            const int value_fraction = value_modulo / (baud / 16);
+            Register(port, USART_BRR) = (value_mantissa << 4) | (value_fraction & 15);
+        }
+    } // namespace detail
+
+    template<typename Clock>
+    void Configure(
+        const Port& port, const int baudRate, const DataBits db, const Parity p, const StopBits sb,
+        const FlowControl fc)
+    {
+        detail::SetBaudRate<Clock>(port, baudRate);
+
+        uint32_t cr1 = Register(port, USART_CR1);
+        cr1 &= ~(cr1::M | cr1::PCE | cr1::PS);
+        cr1 |= static_cast<uint32_t>(db);
+        cr1 |= static_cast<uint32_t>(p);
+
+        uint32_t cr2 = Register(port, USART_CR2);
+        cr2 &= ~(cr2::STOP_MASK);
+        cr2 |= static_cast<uint32_t>(sb);
+
+        uint32_t cr3 = Register(port, USART_CR3);
+        cr3 &= ~(cr3::CTSE | cr3::RTSE);
+        cr3 |= static_cast<uint32_t>(fc);
+
+        Register(port, USART_CR1) = cr1;
+        Register(port, USART_CR2) = cr2;
+        Register(port, USART_CR3) = cr3;
+    }
+
+    void SetMode(const Port& port, const Mode mode)
+    {
+        auto cr = Register(port, USART_CR1);
+        cr &= ~(cr1::RE | cr1::TE | cr1::UE);
+        cr |= static_cast<uint32_t>(mode);
+        Register(port, USART_CR1) = cr;
+    }
 } // namespace usart
