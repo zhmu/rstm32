@@ -275,13 +275,13 @@ namespace rcc
                 detail::GetAHBPrescalerRegisterValue<Clock::cpu_frequency, Clock::ahb_frequency>()
                 << 4;
             constexpr auto ppre1Divisor =
-                detail::GetAPBPrescalerRegisterValue<Clock::cpu_frequency, Clock::apb1_frequency>()
+                detail::GetAPBPrescalerRegisterValue<Clock::ahb_frequency, Clock::apb1_frequency>()
                 << 8;
             constexpr auto ppre2Divisor =
-                detail::GetAPBPrescalerRegisterValue<Clock::cpu_frequency, Clock::apb2_frequency>()
+                detail::GetAPBPrescalerRegisterValue<Clock::ahb_frequency, Clock::apb2_frequency>()
                 << 11;
             constexpr auto adcDivisor =
-                detail::GetADCPrescalerRegisterValue<Clock::cpu_frequency, Clock::adc_frequency>()
+                detail::GetADCPrescalerRegisterValue<Clock::ahb_frequency, Clock::adc_frequency>()
                 << 14;
             Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::HPRE_MASK) | ahbDivisor;
             Register(RCC_CFGR) = (Register(RCC_CFGR) & ~cfgr::ADCPRE_MASK) | adcDivisor;
