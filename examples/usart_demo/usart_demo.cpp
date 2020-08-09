@@ -8,6 +8,7 @@
 #include "rstm32/rcc.h"
 #include "rstm32/format.h"
 #include "rstm32/gpio.h"
+#include "rstm32/timer.h"
 #include "rstm32/usart.h"
 
 constexpr usart::Port usart1(usart::Port::USART1);
@@ -26,6 +27,7 @@ namespace
         rcc::EnableClock(rcc::PeripheralClock::IOPA);
         rcc::EnableClock(rcc::PeripheralClock::AFIO);
         rcc::EnableClock(rcc::PeripheralClock::USART1);
+        rcc::EnableClock(rcc::PeripheralClock::TIM2);
     }
 
     void usart_init()
@@ -57,11 +59,11 @@ int main()
     gpio_init();
     usart_init();
 
+    format::Print(usart1, "hmm?\n");
     for (unsigned int counter = 0;; ++counter) {
         gpio::TogglePin(pinLed);
-        format::Print(usart1, "Hello world ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
+        //format::Print(usart1, "Hello world ", counter, " ", static_cast<uint32_t>(counter), "\r\n");
 
-        for (int i = 0; i < 1000000; ++i)
-            __asm __volatile("nop");
+        timer::Delay<Clock>(10);
     }
 }
