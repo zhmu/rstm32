@@ -35,7 +35,7 @@ namespace gpio
 
         constexpr inline uint32_t CNF_MASK = (1 << 3) | (1 << 2);
         constexpr inline uint32_t CNF_IN_ANALOG = (0 << 3) | (0 << 2);
-        constexpr inline uint32_t CNF_IN_FLOATING = (0 << 3) | (0 << 2);
+        constexpr inline uint32_t CNF_IN_FLOATING = (0 << 3) | (1 << 2);
         constexpr inline uint32_t CNF_IN_PULL_UPDOWN = (1 << 3) | (0 << 2);
 
         constexpr inline uint32_t CNF_OUT_GENERAL_PUSH_PULL = (0 << 3) | (0 << 2);
@@ -116,6 +116,11 @@ namespace gpio
     inline void SetPin(const Pin& p)
     {
         gpio::Register(static_cast<uint32_t>(p.bank) + GPIOx_ODR) |= (1 << p.pin);
+    }
+
+    inline bool ReadPin(const Pin& p)
+    {
+        return (gpio::Register(static_cast<uint32_t>(p.bank) + GPIOx_IDR) & (1 << p.pin)) != 0;
     }
 
 } // namespace gpio
