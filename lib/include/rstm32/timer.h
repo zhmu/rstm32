@@ -109,7 +109,7 @@ namespace timer
     } // namespace tim
 
     template<typename Clock>
-    void Delay(int ms)
+    void Delay_ms(int ms)
     {
         constexpr auto pscReg = (Clock::apb1_frequency / 1000);
         // static_assert(pscReg <= 65535);
